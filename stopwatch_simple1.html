@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #f0f7f4;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app {
+    width: 380px;
+    max-width: 95vw;
+  }
+
+  /* Top label */
+  .label {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #9dbfb3;
+    margin-bottom: 20px;
+  }
+
+  /* Main card */
+  .card {
+    background: #fff;
+    border-radius: 28px;
+    padding: 40px 32px 32px;
+    box-shadow: 0 8px 40px rgba(52, 168, 130, 0.10), 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  /* Status pill */
+  .status-pill {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-bottom: 24px;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #d4e8e1;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .running .dot { background: #34a882; box-shadow: 0 0 0 3px rgba(52,168,130,0.2); animation: pulse 1.2s ease-in-out infinite; }
+  .paused .dot { background: #f4a940; box-shadow: 0 0 0 3px rgba(244,169,64,0.2); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .status-text {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #c0d9d1;
+    transition: color 0.3s;
+    font-family: 'DM Mono', monospace;
+  }
+  .running .status-text { color: #34a882; }
+  .paused .status-text { color: #f4a940; }
+
+  /* Time */
+  .time-wrap {
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .time-main {
+    font-family: 'DM Mono', monospace;
+    font-size: 76px;
+    font-weight: 400;
+    color: #1a2e28;
+    letter-spacing: -3px;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+  .running .time-main { color: #0f2420; }
+  .time-ms {
+    font-family: 'DM Mono', monospace;
+    font-size: 30px;
+    color: #34a882;
+    letter-spacing: 1px;
+    font-weight: 400;
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: #edf4f1;
+    margin: 24px 0;
+  }
+
+  /* Buttons */
+  .btn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 14px 10px;
+    transition: all 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    letter-spacing: 0.5px;
+  }
+  .btn:active { transform: scale(0.94); }
+  .btn:disabled { opacity: 0.60; cursor: not-allowed; transform: none; }
+
+  .btn-start {
+    background: #34a882;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(52,168,130,0.35);
+  }
+  .btn-start:not(:disabled):hover { background: #2d9672; box-shadow: 0 6px 24px rgba(52,168,130,0.45); transform: translateY(-1px); }
+
+  .btn-pause {
+    background: #eef6ff;
+    color: #4a9eff;
+    border: 1.5px solid #cde3ff;
+  }
+  .btn-pause:not(:disabled):hover { background: #ddeeff; transform: translateY(-1px); }
+
+  .btn-lap {
+    background: #eef6ff;
+    color: #4a9eff;
+    border: 1.5px solid #cde3ff;
+  }
+  .btn-lap:not(:disabled):hover { background: #ddeeff; transform: translateY(-1px); }
+
+  .btn-reset {
+    background: #fff0f1;
+    color: #ff6b7a;
+    border: 1.5px solid #ffd5d8;
+    grid-column: span 3;
+    padding: 11px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 12px;
+  }
+  .btn-reset:not(:disabled):hover { background: #ffe4e6; transform: translateY(-1px); }
+
+  /* Lap list */
+  .laps {
+    margin-top: 16px;
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .laps::-webkit-scrollbar { display: none; }
+
+  .lap-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    background: #f8fbfa;
+    animation: slideIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+    border: 1.5px solid transparent;
+    transition: border-color 0.2s;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .lap-item.best  { border-color: #c8edd9; background: #f0fbf5; }
+  .lap-item.worst { border-color: #ffd5d8; background: #fff5f6; }
+
+  .lap-num  { color: #aac8bf; font-size: 11px; font-weight: 500; }
+  .lap-time { color: #1a2e28; font-weight: 500; }
+  .lap-tag  { font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; }
+  .best  .lap-tag { color: #2d9672; background: #d4f0e3; }
+  .worst .lap-tag { color: #ff6b7a; background: #ffe4e6; }
+  .lap-item:not(.best):not(.worst) .lap-tag { color: #aac8bf; background: #edf4f1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="label">Stopwatch</div>
+
+  <div class="card" id="card">
+    <div class="status-pill">
+      <div class="dot"></div>
+      <span class="status-text" id="statusText">Ready</span>
+    </div>
+
+    <div class="time-wrap">
+      <div class="time-main" id="timeMain">00:00</div>
+      <div class="time-ms" id="timeMs">.000</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="btn-grid">
+      <button class="btn btn-lap"   id="btnLap"   disabled>Lap</button>
+      <button class="btn btn-start" id="btnStart">Start</button>
+      <button class="btn btn-pause" id="btnPause" disabled>Pause</button>
+      <button class="btn btn-reset" id="btnReset" disabled>Reset</button>
+    </div>
+  </div>
+
+  <div class="laps" id="lapList"></div>
+</div>
+
+<script>
+  let startTime = null, elapsed = 0, lapStart = 0;
+  let laps = [], rafId = null, state = 'idle';
+
+  const card     = document.getElementById('card');
+  const timeMain = document.getElementById('timeMain');
+  const timeMs   = document.getElementById('timeMs');
+  const statusText = document.getElementById('statusText');
+  const lapList  = document.getElementById('lapList');
+  const btnStart = document.getElementById('btnStart');
+  const btnPause = document.getElementById('btnPause');
+  const btnReset = document.getElementById('btnReset');
+  const btnLap   = document.getElementById('btnLap');
+
+  function fmtTime(ms) {
+    const m  = Math.floor(ms / 60000);
+    const s  = Math.floor((ms % 60000) / 1000);
+    const ms3 = ms % 1000;
+    return {
+      main: `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`,
+      ms:   '.' + String(ms3).padStart(3,'0')
+    };
+  }
+
+  function tick() {
+    const now = elapsed + (performance.now() - startTime);
+    const f = fmtTime(now);
+    timeMain.textContent = f.main;
+    timeMs.textContent   = f.ms;
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function setCard(s) {
+    card.classList.remove('running','paused');
+    if (s) card.classList.add(s);
+  }
+
+  function start() {
+    startTime = performance.now();
+    state = 'running';
+    setCard('running');
+    statusText.textContent = 'Running';
+    btnStart.disabled = true;
+    btnPause.disabled = false;
+    btnReset.disabled = false;
+    btnLap.disabled   = false;
+    tick();
+  }
+
+  function pause() {
+    elapsed += performance.now() - startTime;
+    cancelAnimationFrame(rafId);
+    state = 'paused';
+    setCard('paused');
+    statusText.textContent = 'Paused';
+    btnStart.textContent = 'Resume';
+    btnStart.disabled = false;
+    btnPause.disabled = true;
+    btnLap.disabled   = true;
+  }
+
+  function reset() {
+    cancelAnimationFrame(rafId);
+    elapsed = 0; lapStart = 0; laps = [];
+    state = 'idle';
+    setCard(null);
+    statusText.textContent = 'Ready';
+    timeMain.textContent = '00:00';
+    timeMs.textContent   = '.000';
+    lapList.innerHTML = '';
+    btnStart.textContent = 'Start';
+    btnStart.disabled = false;
+    btnPause.disabled = true;
+    btnReset.disabled = true;
+    btnLap.disabled   = true;
+  }
+
+  function lap() {
+    const now = elapsed + (performance.now() - startTime);
+    const lapMs = now - lapStart;
+    lapStart = now;
+    laps.unshift({ n: laps.length + 1, lap: lapMs });
+    renderLaps();
+  }
+
+  function renderLaps() {
+    const times = laps.map(l => l.lap);
+    const best  = Math.min(...times);
+    const worst = Math.max(...times);
+    lapList.innerHTML = '';
+    laps.forEach(l => {
+      const isBest  = laps.length > 1 && l.lap === best;
+      const isWorst = laps.length > 1 && l.lap === worst;
+      const f   = fmtTime(l.lap);
+      const tag = isBest ? '▲ Best' : isWorst ? '▼ Worst' : '—';
+      const div = document.createElement('div');
+      div.className = 'lap-item' + (isBest ? ' best' : isWorst ? ' worst' : '');
+      div.innerHTML = `
+        <span class="lap-num">Lap ${String(l.n).padStart(2,'0')}</span>
+        <span class="lap-time">${f.main}${f.ms}</span>
+        <span class="lap-tag">${tag}</span>`;
+      lapList.appendChild(div);
+    });
+  }
+
+  btnStart.addEventListener('click', start);
+  btnPause.addEventListener('click', pause);
+  btnReset.addEventListener('click', reset);
+  btnLap.addEventListener('click',   lap);
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space') { e.preventDefault(); state === 'running' ? pause() : start(); }
+    if (e.code === 'KeyL' && state === 'running') lap();
+    if (e.code === 'KeyR') reset();
+  });
+</script>
+</body>
+</html>
